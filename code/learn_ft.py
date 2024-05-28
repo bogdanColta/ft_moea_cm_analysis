@@ -402,8 +402,8 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', '-v', help='Enable verbose output', action='store_true')
     parser.add_argument('--debug', '-d', help='Enable debugging', action='store_true')
     parser.add_argument('--segment-size', '-sz',type=int, help='Set segment size for random segmentation', default='4')
-    parser.add_argument('--metric-config','-mc', type=str, help='Set metric configuration', default="11100000000000000000000")
-
+    parser.add_argument('--metric-config','-mc', type=str, help='Set metric configuration', default="11100110100100010000001")
+    # "11100000000000000000000"
     args = parser.parse_args()
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
@@ -415,8 +415,10 @@ if __name__ == "__main__":
     config.learn_approach = args.learn_approach
     config.use_symmetries = not args.disable_symmetries
     config.use_modules = not args.disable_modules
-    config.use_recursion = not args.disable_recursion
-    config.use_multithreading = not args.disable_multithreading
+    # config.use_recursion = not args.disable_recursion
+    config.use_recursion = False
+    config.use_multithreading = True
+    # config.use_multithreading = not args.disable_multithreading
     config.use_caching = not args.disable_caching
     config.seg_size = args.segment_size
     config.obj_functions = [int(char) for char in args.metric_config]

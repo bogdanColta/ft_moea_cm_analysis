@@ -1,6 +1,10 @@
 import time
 import dill
 import pandas as pd
+import os
+
+directory = "./timestamps/"
+os.makedirs(directory, exist_ok=True)
 
 class TimeTracker:
     def __init__(self,metric_config='11100000000000000000000', dataset="dataset", log_file="timestamps.dill"):

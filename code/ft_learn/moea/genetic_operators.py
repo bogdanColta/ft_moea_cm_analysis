@@ -335,7 +335,7 @@ class GenOpConfig:
         self.p_cross_over = default_prob
 
 
-def apply_genetic_operators(population, all_bes, prob_config, deterministic=False):
+def apply_genetic_operators(population, all_bes, prob_config, graph, generation, deterministic=False):
     """
     Apply genetic operators on fault-tree population.
     :param population: Population of fault tree.
@@ -354,6 +354,11 @@ def apply_genetic_operators(population, all_bes, prob_config, deterministic=Fals
     for result in results:
         new_population.extend(result[0])
         total_assert_errors += result[1]
+        
+        for task in result[2]:
+            graph.add_vertex(task[0], task[1], task[2], generation)
+            graph.add_edge(task[2], task[0])
+        
     new_population = list(set(new_population))
     if total_assert_errors > 0:
         logging.debug("Encountered {} assertion errors".format(total_assert_errors))
@@ -363,7 +368,8 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
     actions = [create_be, connect_be, disconnect_be, delete_be, move_be, create_gate, change_gate_type, delete_gate, cross_over]
     new_population = [ft]
     assert_errors = 0
-
+    tasks = []
+    
     for action in actions:
         prob_action = getattr(prob_config, "p_{}".format(action.__name__))
         try:
@@ -372,6 +378,7 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
                 if not helper.check_empty_objects(new_ft_2):
                     if new_ft_2 not in new_population:
                         new_ft_2.add_to_history(action.__name__)
+                        tasks.append([str(new_ft_2), action.__name__, str(ft)])
                         new_population.append(new_ft_2)
             elif action == create_be:
                 new_ft = action(ft, all_bes, prob_action, deterministic)
@@ -384,19 +391,28 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
         if new_ft and not helper.check_empty_objects(new_ft):
                 # print(new_ft.operation_history)
                 new_ft.add_to_history(action.__name__)
+                # graph.add_vertex(new_ft, str(action), ft)
+                # graph.add_edge(ft, new_ft)
+                tasks.append([str(new_ft), action.__name__, str(ft)])
                 new_population.append(new_ft)
 
-    return new_population, assert_errors
+    return new_population, assert_errors, tasks
 
-def apply_genetic_operators_multithreaded(population, all_bes, prob_config, deterministic=False):
+def apply_genetic_operators_multithreaded(population, all_bes, prob_config, graph, generation,deterministic=False):
+    
     with Pool() as p:
         results = p.starmap(operate_on_ft, [(ft, population, all_bes, prob_config, deterministic) for ft in population])
-
+    
     new_population = []
     total_assert_errors = 0
     for result in results:
         new_population.extend(result[0])
         total_assert_errors += result[1]
+        
+        for task in result[2]:
+            graph.add_vertex(task[0], task[1], task[2], generation)
+            graph.add_edge(task[2], task[0])
+        
     new_population = list(set(new_population))
     if total_assert_errors > 0:
         logging.debug("Encountered {} assertion errors".format(total_assert_errors))

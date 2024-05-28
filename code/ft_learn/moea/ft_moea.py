@@ -16,6 +16,8 @@ import ft_learn.moea.genetic_operators as genetic_operators
 import ft_learn.moea.fitness as fitness
 import os, os.path
 import ft_learn.moea.time_tracker as tt
+from ..operator_analysis.graph import Graph
+from ..operator_analysis.statistical_analysis import difference
 
 def generate_initial_population(basic_events):
     ft1 = FaultTree(OR(deepcopy(basic_events)))
@@ -79,7 +81,7 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
         path_save_results = upfold(path_save_results)
 
     multi_objective_function = list(-1*np.array(multi_objective_function)) # Minimize the size of the FT
-    if MCSs != []:
+    if MCSs.size != 0:
         ft_from_MCSs = MCSs
         
     t = [time.time()]
@@ -112,18 +114,20 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
         initial_population = [str2ft(ft_as_input)]
 
     # ------------------------------------
-    time_tracker = tt.TimeTracker(multi_objective_function,dataset_name[0] ,dataset_name[0] + "_" + str(run_id))
+    forest = Graph(initial_population)
+    
+    time_tracker = tt.TimeTracker(multi_objective_function,dataset_name[0] ,dataset_name[0] + "_" + str())
     time_tracker.start_timer("generation")
     while len(initial_population) < population_size:
         if use_multithreading:
-            initial_population = genetic_operators.apply_genetic_operators_multithreaded(initial_population, basic_events, config_gen_op, debugging)
+            initial_population = genetic_operators.apply_genetic_operators_multithreaded(initial_population, basic_events, config_gen_op, forest, 0, debugging)
         else:
-            initial_population = genetic_operators.apply_genetic_operators(initial_population, basic_events, config_gen_op, debugging)
+            initial_population = genetic_operators.apply_genetic_operators(initial_population, basic_events, config_gen_op, forest, 0, debugging)
     time_tracker.end_timer("generation")
     t.append(time.time())
     start_t = time.time()
     print("start fitness function")
-    raw_fts = fitness.cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
+    raw_fts = fitness.cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, forest, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
 
     # sortedPeople,fitnesses,fitness_dict
 
@@ -148,17 +152,19 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
             time_tracker.start_timer("generation")
             while len(new_population) < population_size:
                 if use_multithreading:
-                    new_population = genetic_operators.apply_genetic_operators_multithreaded(population, basic_events, config_gen_op, debugging)
+                    new_population = genetic_operators.apply_genetic_operators_multithreaded(population, basic_events, config_gen_op, forest, i, debugging)
                 else:
-                    new_population = genetic_operators.apply_genetic_operators(population, basic_events, config_gen_op, debugging)
+                    new_population = genetic_operators.apply_genetic_operators(population, basic_events, config_gen_op, forest, i, debugging)
             time_tracker.end_timer("generation")
-            raw_fts = fitness.cost_function(new_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function,seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
-
+            raw_fts = fitness.cost_function(new_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, forest, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
         if path_save_results != '':
             #Saving dataset
             save_results(raw_fts,t[-1]-t[0],path_save_results,dataset,ft_from_MCSs,multi_objective_function)
         dict_iterations.append([str(raw_fts[0][-1])] + np.mean(raw_fts[1],axis=0).tolist() + raw_fts[1][-1].tolist()  )
-            
+        
+        res = forest.bfs()
+        difference(res)
+        
         print(str(i),'\t    ϕ_c=',"{:.4f}".format(np.mean(raw_fts[1][:,0])),
               ', ϕ_d=',"{:.4f}".format(np.mean(raw_fts[1][:,2])),
               ', ϕ_r=',"{:.4f}".format(np.mean(raw_fts[1][:,3])),
@@ -199,6 +205,8 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
                 conv = 0       
         if conv >= convergence_criterion-1: #or ( dict_iterations[-1][4] == 1.0 and dict_iterations[-1][6] == 1.0 ):
             print('cached', cache_dictionary)
+            res = forest.bfs()
+            difference(res)
             print('... FT-MOEA finalized ...')
             return raw_fts[0], t, raw_fts[1]
 
@@ -283,5 +291,8 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
         else:
             population = elitism(sortedPeople, population_size, fitness_dict)
 
+    res = forest.bfs()
+    difference(res)
+    
     print('... FT-MOEA finalized ...')
     return raw_fts[0], t, raw_fts[1]

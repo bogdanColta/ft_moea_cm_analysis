@@ -374,12 +374,19 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
         prob_action = getattr(prob_config, "p_{}".format(action.__name__))
         try:
             if action == cross_over:
-                new_ft, new_ft_2 = action(ft, random.choice(population), prob_action, deterministic)
+                random_ft = random.choice(population)
+                new_ft, new_ft_2 = action(ft, random_ft, prob_action, deterministic)
                 if not helper.check_empty_objects(new_ft_2):
                     if new_ft_2 not in new_population:
                         new_ft_2.add_to_history(action.__name__)
-                        tasks.append([str(new_ft_2), action.__name__, str(ft)])
+                        tasks.append([str(new_ft_2), action.__name__, [str(ft), str(random_ft)]])                       
                         new_population.append(new_ft_2)
+                        
+                if new_ft and not helper.check_empty_objects(new_ft) and action != cross_over:
+                    new_ft.add_to_history(action.__name__)
+                    tasks.append([str(new_ft), action.__name__, [str(ft), str(random_ft)]])
+                    new_population.append(new_ft)
+                    
             elif action == create_be:
                 new_ft = action(ft, all_bes, prob_action, deterministic)
             else:
@@ -388,12 +395,12 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
             assert_errors += 1
             new_ft = None
 
-        if new_ft and not helper.check_empty_objects(new_ft):
+        if new_ft and not helper.check_empty_objects(new_ft) and action != cross_over:
                 # print(new_ft.operation_history)
                 new_ft.add_to_history(action.__name__)
                 # graph.add_vertex(new_ft, str(action), ft)
                 # graph.add_edge(ft, new_ft)
-                tasks.append([str(new_ft), action.__name__, str(ft)])
+                tasks.append([str(new_ft), action.__name__, [str(ft)]])
                 new_population.append(new_ft)
 
     return new_population, assert_errors, tasks

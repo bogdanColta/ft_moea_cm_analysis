@@ -162,8 +162,7 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
             save_results(raw_fts,t[-1]-t[0],path_save_results,dataset,ft_from_MCSs,multi_objective_function)
         dict_iterations.append([str(raw_fts[0][-1])] + np.mean(raw_fts[1],axis=0).tolist() + raw_fts[1][-1].tolist()  )
         
-        res = forest.bfs()
-        difference(res)
+        # print(forest.trace_back())
         
         print(str(i),'\t    ϕ_c=',"{:.4f}".format(np.mean(raw_fts[1][:,0])),
               ', ϕ_d=',"{:.4f}".format(np.mean(raw_fts[1][:,2])),
@@ -205,8 +204,12 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
                 conv = 0       
         if conv >= convergence_criterion-1: #or ( dict_iterations[-1][4] == 1.0 and dict_iterations[-1][6] == 1.0 ):
             print('cached', cache_dictionary)
-            res = forest.bfs()
-            difference(res)
+            
+            # res = forest.bfs()
+            # difference(res)
+            route =  forest.trace_back(str(raw_fts[0][-1]))
+            print(route)
+            
             print('... FT-MOEA finalized ...')
             return raw_fts[0], t, raw_fts[1]
 

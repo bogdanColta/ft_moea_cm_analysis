@@ -4,6 +4,8 @@ from scipy.stats import kruskal
 from scipy.stats import mannwhitneyu
 import itertools
 import matplotlib.pyplot as plt
+import os
+import time
 
 
 def difference(arr):
@@ -23,7 +25,7 @@ def difference(arr):
         'ϕ_dor': 22
     }
     
-    print(df)
+    # print(df)
     
     for metric, index in metrics.items():
         df[metric] = df['Child_Metrics'].apply(lambda x: x[index]) - df['Parent_Metrics'].apply(lambda x: x[index])
@@ -38,20 +40,39 @@ def difference(arr):
     for metric in metrics:
         grouped = df.groupby(['Operator', 'Generation'])[metric].mean().reset_index(name=f'Mean')
         grouped_data[metric] = grouped
+        
+    output_folder = 'ft_learn/operator_analysis/plots_' + time.strftime('%Y-%m-%d_%H-%M-%S')
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    color_map = {
+        'disconnect_be': 'blue',
+        'delete_be': 'green',
+        'create_gate': 'red',
+        'change_gate_type': 'purple',
+        'create_be': 'orange',
+        'cross_over': 'brown',
+        'delete_gate': 'pink',
+        'connect_be': 'gray',
+        'move_be': 'cyan',
+    }
     
     for metric in metrics.keys():
         plt.figure(figsize=(10, 6))
         
         for operator in df['Operator'].unique():
             subset = grouped_data[metric][grouped_data[metric]['Operator'] == operator]
-            plt.plot(subset['Generation'], subset['Mean'], label=operator)
+            plt.plot(subset['Generation'], subset['Mean'], label=operator, color=color_map.get(operator, 'black'))
         
         plt.xlabel('Generation')
         plt.ylabel(f'Mean {metric}')
         plt.title(f'Mean {metric} by Generation and Operator')
         plt.legend(title='Operator')
         plt.grid(True)
-        plt.show()
+        
+        filename = os.path.join(output_folder, f'{metric}.png')
+        plt.savefig(filename)
 
 
 

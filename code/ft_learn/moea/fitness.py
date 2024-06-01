@@ -183,7 +183,7 @@ def cost_function(initial_population, dataset, bes, population_size, ft_from_MCS
     time_tracker.end_timer("pareto_sorting")
     
     for i in fitness_dict:
-        graph.getVertex(i).setMetrics(fitness_dict[i])
+        graph.get_vertex(i).set_metrics(fitness_dict[i])
 
     return raw_fts
 

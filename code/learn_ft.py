@@ -130,7 +130,7 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
         # Store BEs (globally and per module)
         bes_ftmoea = {'all': bes_all, 'module': bes_module}
         
-        fts, _, _ = perform_genetic_ftmoea(dataset=dataset_evaluation_ftmoea, MCSs=mcs_matrix_ftmoea, bes=bes_ftmoea, population_size=config.population,
+        fts, _, _, graph_statistics = perform_genetic_ftmoea(dataset=dataset_evaluation_ftmoea, MCSs=mcs_matrix_ftmoea, bes=bes_ftmoea, population_size=config.population,
                                            generations=config.max_generations, convergence_criterion=config.unchanged_generations, multi_objective_function=config.obj_functions,
                                            config_gen_op=config.probs_config, selection_strategy=config.selection_strategy, debugging=config.debug,
                                            path_save_results=config.saving_folder,
@@ -138,6 +138,9 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
                                            use_multithreading = config.use_multithreading,
                                            use_caching = config.use_caching)
         ft = fts[-1]
+        
+        filename, file_extension = os.path.splitext(os.path.basename(args.file))
+        graph_statistics.bfs(filename)
     elif config.learn_approach == LearnApproach.SYMPY:
         log_debug("Learn FT via sympy for module {}".format(CutSet(bes.keys()).to_string(bes)), recurse_level)
         # cutset_matrix = cutset_matrix[:, list(mod_bes.keys())]

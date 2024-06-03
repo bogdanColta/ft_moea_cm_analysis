@@ -6,15 +6,11 @@ import itertools
 import matplotlib.pyplot as plt
 import os
 import time
+import sys
 
+file = ""
 
-def difference(arr):
-    for i in arr:
-        if len(i[3]) == 0:
-            i[3] = i[2].copy()
-    
-    df = pd.DataFrame(arr, columns=['Child', 'Parent', 'Child_Metrics', 'Parent_Metrics', 'Operator', 'Generation'])
-    # Calculate differences
+def difference(df):
     metrics = {
         'ϕ_spec': 6,
         'ϕ_npv': 8,
@@ -24,9 +20,7 @@ def difference(arr):
         'ϕ_s': 1,
         'ϕ_dor': 22
     }
-    
-    # print(df)
-    
+        
     for metric, index in metrics.items():
         df[metric] = df['Child_Metrics'].apply(lambda x: x[index]) - df['Parent_Metrics'].apply(lambda x: x[index])
 
@@ -36,12 +30,16 @@ def difference(arr):
     
     # print(grouped_data)
     
-    grouped_data = {}
-    for metric in metrics:
-        grouped = df.groupby(['Operator', 'Generation'])[metric].mean().reset_index(name=f'Mean')
-        grouped_data[metric] = grouped
+    # grouped_data = {}
+    # for metric in metrics:
+    #     grouped = df.groupby(['Operator', 'Generation'])[metric].agg(
+    #         Mean=('mean'),
+    #         Std=('std'),
+    #         Median=('median')
+    #     ).reset_index()
+    #     grouped_data[metric] = grouped
         
-    output_folder = 'ft_learn/operator_analysis/plots_' + time.strftime('%Y-%m-%d_%H-%M-%S')
+    output_folder = 'plots/plot_' + file + '_' + time.strftime('%Y-%m-%d_%H-%M-%S')
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -56,40 +54,86 @@ def difference(arr):
         'delete_gate': 'pink',
         'connect_be': 'gray',
         'move_be': 'cyan',
-    }
+    } 
     
+    for metric in metrics.keys():
+        for operator in df['Operator'].unique():
+            plt.figure(figsize=(10, 6))
+            subset = df[df['Operator'] == operator]
+            generations = subset['Generation'].unique()
+            generations.sort()
+            
+            x = []
+            mean = []
+            std = []
+            median = []
+            
+            for i in range(len(generations)):
+                x.append(generations[i])
+                mean.append(subset[subset['Generation'] == generations[i]][metric].mean())
+                std.append(subset[subset['Generation'] == generations[i]][metric].std())
+                median.append(subset[subset['Generation'] == generations[i]][metric].median())
+                    
+        # Plot mean line
+        plt.plot(x, mean, label=f'{operator} Mean', color=color_map.get(operator, 'black'))
+        
+        # Plot shaded area for std deviation
+        plt.fill_between(x, np.array(mean) - np.array(std), np.array(mean) + np.array(std), 
+                        color=color_map.get(operator, 'black'), alpha=0.2)
+        
+        # Plot median line with dotted style
+        plt.plot(x, median, label=f'{operator} Median', color=color_map.get(operator, 'black'), linestyle=':')
+    
+    
+        plt.xlabel('Generation')
+        plt.ylabel(f'Mean of difference between child and parent {metric}')
+        plt.title(f'Mean of difference between child and parent {metric} by Generation and Operator')
+        plt.legend(title='Operator')
+        plt.grid(True)
+        
+        filename = os.path.join(output_folder, f'{metric} for operator {operator}.png')
+        plt.savefig(filename)
+        plt.close()
+        
+        
     for metric in metrics.keys():
         plt.figure(figsize=(10, 6))
         
         for operator in df['Operator'].unique():
-            subset = grouped_data[metric][grouped_data[metric]['Operator'] == operator]
-            plt.plot(subset['Generation'], subset['Mean'], label=operator, color=color_map.get(operator, 'black'))
+            subset = df[df['Operator'] == operator]
+            generations = subset['Generation'].unique()
+            generations.sort()
+            
+            x = []
+            y = []
+            
+            for i in range(len(generations) - 1):
+                gen1 = generations[i]
+                gen2 = generations[i + 1]
+                
+                data1 = subset[subset['Generation'] == gen1][metric]
+                data2 = subset[subset['Generation'] == gen2][metric]
+                
+                if len(data1) > 0 and len(data2) > 0:
+                    u, p = mannwhitneyu(data1, data2, alternative='two-sided')
+                    
+                    # if(p < 0.05):
+                    #     print(f'P-value for {operator} between generations {gen1} and {gen2} is {p}')
+                        
+                    x.append((gen1 + gen2) / 2)  # Middle point between generations
+                    y.append(p)
+
+            plt.plot(x, y, label=operator, color=color_map.get(operator, 'black'))
         
         plt.xlabel('Generation')
-        plt.ylabel(f'Mean {metric}')
-        plt.title(f'Mean {metric} by Generation and Operator')
+        plt.ylabel(f'P-value of Mann-Whitney U Test for {metric}')
+        plt.title(f'Mann-Whitney U Test P-values for {metric} by Generation and Operator')
         plt.legend(title='Operator')
         plt.grid(True)
         
-        filename = os.path.join(output_folder, f'{metric}.png')
+        filename = os.path.join(output_folder, f'{metric}_U-Test.png')
         plt.savefig(filename)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
 
 
 
@@ -127,3 +171,17 @@ def difference(arr):
     #             if p_val < 0.05:
     #                 higher_op = op1 if med1 > med2 else op2
     #                 print(f'{metric}: Mann-Whitney U test between {op1} and {op2}: corrected P-value={p_val}. Higher improvement: {higher_op}')
+
+
+if __name__ == "__main__":
+    file = sys.argv[1]
+    df = pd.read_pickle(file)
+    file, file_extension = os.path.splitext(os.path.basename(file))
+    # Convert the DataFrame to a string
+    df_string = df.to_string()
+
+    # Write the string to a file
+    with open('output-test.txt', 'w') as f:
+        f.write(df_string)
+        
+    difference(df)

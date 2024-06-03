@@ -1,9 +1,12 @@
 import numpy as np
+import pandas as pd
+import os
 
 class Graph:
     def __init__(self, initial_population):
         self.graph = {}
         self.vertices = {}
+        self.vertices_single_key = {}
         self.initial_population = []
         
         for i in initial_population:
@@ -12,49 +15,36 @@ class Graph:
 
 
     def add_vertex(self, ft, operator, parent, generation):        
-        if ft not in self.vertices:
+        if (ft, operator) not in self.vertices:
             vertex = Vertex(ft, operator, parent, generation)
             self.graph[vertex] = []
-            self.vertices[ft] = vertex
+            self.vertices[(ft, operator)] = vertex
+            if ft not in self.vertices_single_key:
+                self.vertices_single_key[ft] = vertex
+                            
             
-            
-    def get_vertex(self, ft): 
-        return self.vertices[ft]
-
-
-    def add_edge(self, parent, child):
-        for i in parent:
-            self.graph[self.get_vertex(i)].append(self.get_vertex(child))
-            
+    def get_vertex(self, ft, operator): 
+        return self.vertices[(ft, operator)]
     
-    def find_route(self, end):
-        all_paths = []
-        stack = []
-        
-        for start in self.initial_population:
-            start_vertex = self.get_vertex(start)
-            stack.append(start_vertex, [], {start_vertex})  # stack of tuples (current node, current path, visited nodes set)
-            
-        while stack:
-            current, path, visited = stack.pop()
-            
-            # Create a new path for the current state
-            new_path = path + [(current.get_ft(), [p for p in current.get_parent()], current.get_generation(), current.get_operator())]
+    
+    def get_vertex_single(self, ft):
+        return self.vertices_single_key[ft]
 
-            if current.get_ft() == end:
-                all_paths.append(new_path)
-            else:
-                for neighbour in self.graph[current]:
-                    if neighbour not in visited:
-                        # Create a new visited set that includes the neighbour
-                        new_visited = visited | {neighbour}
-                        stack.append((neighbour, new_path, new_visited))
-                        
-        return all_paths
 
+    def add_edge(self, parent, child, operator):
+        for i in parent:
+            self.graph[self.get_vertex_single(i)].append(self.get_vertex(child, operator))
+            
+            
+    def set_metrics_for_all(self, metrics):
+        for i in self.vertices:
+            if i[0] in metrics:
+                self.get_vertex(i[0], i[1]).set_metrics(metrics[i[0]])
+    
     
     def trace_back(self, ft):
-        current = self.get_vertex(ft)
+        # operator
+        current = self.get_vertex_single(ft)
         data = []
         
         while current is not None:
@@ -63,10 +53,10 @@ class Graph:
             if current.get_parent() == []:
                 break
             
-            current = self.get_vertex(current.get_parent()[0])
+            current = self.get_vertex_single(current.get_parent()[0])
             
             for i in current.get_parent():
-                parent = self.get_vertex(i)
+                parent = self.get_vertex_single(i)
                 if parent.get_generation() > current.get_generation():
                     current = parent
             
@@ -74,12 +64,12 @@ class Graph:
                 
 
 
-    def bfs(self):
+    def bfs(self, filename):
         visited = set()
         queue = []
         data = []
         for x in self.initial_population:
-            v = self.get_vertex(x)
+            v = self.get_vertex_single(x)
             queue.append(v)
             visited.add(v)
         
@@ -87,14 +77,21 @@ class Graph:
             vertex = queue.pop(0)
                 
             for i in vertex.get_parent():
-                data.append([vertex.get_ft(), i, vertex.get_metrics(), self.get_vertex(i).get_metrics(), vertex.get_operator(), vertex.get_generation()])
+                data.append([vertex.get_ft(), i, vertex.get_metrics(), self.get_vertex_single(i).get_metrics(), vertex.get_operator(), vertex.get_generation()])
                 
             for neighbor in self.graph[vertex]:
                 if neighbor not in visited:
                     queue.append(neighbor)
                     visited.add(neighbor)
+                 
                     
-        return data
+        output_folder = 'ft_learn/operator_analysis/saved_data_frames'
+        
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            
+        df = pd.DataFrame(data, columns=['Child', 'Parent', 'Child_Metrics', 'Parent_Metrics', 'Operator', 'Generation'])
+        df.to_pickle(output_folder + f'/{filename}.pkl')
     
 
 class Vertex:

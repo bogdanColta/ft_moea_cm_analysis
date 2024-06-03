@@ -356,8 +356,9 @@ def apply_genetic_operators(population, all_bes, prob_config, graph, generation,
         total_assert_errors += result[1]
         
         for task in result[2]:
-            graph.add_vertex(task[0], task[1], task[2], generation)
-            graph.add_edge(task[2], task[0])
+            if task[0] not in task[2]:
+                graph.add_vertex(task[0], task[1], task[2], generation)
+                graph.add_edge(task[2], task[0], task[1])
         
     new_population = list(set(new_population))
     if total_assert_errors > 0:
@@ -417,8 +418,9 @@ def apply_genetic_operators_multithreaded(population, all_bes, prob_config, grap
         total_assert_errors += result[1]
         
         for task in result[2]:
-            graph.add_vertex(task[0], task[1], task[2], generation)
-            graph.add_edge(task[2], task[0])
+            if task[0] not in task[2]:
+                graph.add_vertex(task[0], task[1], task[2], generation)
+                graph.add_edge(task[2], task[0], task[1])
         
     new_population = list(set(new_population))
     if total_assert_errors > 0:

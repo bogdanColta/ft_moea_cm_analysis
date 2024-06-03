@@ -181,9 +181,8 @@ def cost_function(initial_population, dataset, bes, population_size, ft_from_MCS
     raw_fts = [np.flip(np.array(initial_population)[pt_idx],0).tolist(),np.flip(fitnesses[pt_idx],0),fitness_dict]
     # ------------------------------------------------
     time_tracker.end_timer("pareto_sorting")
-    
-    for i in fitness_dict:
-        graph.get_vertex(i).set_metrics(fitness_dict[i])
+    # ------------------------------------------------
+    graph.set_metrics_for_all(fitness_dict)
 
     return raw_fts
 

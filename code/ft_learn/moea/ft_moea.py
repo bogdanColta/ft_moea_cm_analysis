@@ -161,7 +161,8 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
             #Saving dataset
             save_results(raw_fts,t[-1]-t[0],path_save_results,dataset,ft_from_MCSs,multi_objective_function)
         dict_iterations.append([str(raw_fts[0][-1])] + np.mean(raw_fts[1],axis=0).tolist() + raw_fts[1][-1].tolist()  )
-        
+        print(raw_fts[0])
+        print(raw_fts[1])
         print(str(i),'\t    ϕ_c=',"{:.4f}".format(np.mean(raw_fts[1][:,0])),
               ', ϕ_d=',"{:.4f}".format(np.mean(raw_fts[1][:,2])),
               ', ϕ_r=',"{:.4f}".format(np.mean(raw_fts[1][:,3])),

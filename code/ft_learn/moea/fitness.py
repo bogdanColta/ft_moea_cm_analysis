@@ -146,7 +146,7 @@ def compute_metrics_fts(initial_population,dataset,ft_from_MCSs,multi_objective_
 
 
 # %% Fitness function
-def cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, graph, seg_size=4, cache_dictionary={}, use_multithreading = True, use_caching = True, time_tracker = tt.TimeTracker()):
+def cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, seg_size=4, cache_dictionary={}, use_multithreading = True, use_caching = True, time_tracker = tt.TimeTracker()):
     
     time_tracker.start_timer("metrics")
     # Compute the metrics from the FTs
@@ -181,9 +181,6 @@ def cost_function(initial_population, dataset, bes, population_size, ft_from_MCS
     raw_fts = [np.flip(np.array(initial_population)[pt_idx],0).tolist(),np.flip(fitnesses[pt_idx],0),fitness_dict]
     # ------------------------------------------------
     time_tracker.end_timer("pareto_sorting")
-    # ------------------------------------------------
-    graph.set_metrics_for_all(fitness_dict)
-
     return raw_fts
 
 

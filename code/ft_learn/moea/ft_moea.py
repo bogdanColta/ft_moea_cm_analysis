@@ -115,7 +115,7 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
 
     # ------------------------------------
     forest = Graph(initial_population)
-    
+    population_per_generation = {}
     time_tracker = tt.TimeTracker(multi_objective_function,dataset_name[0] ,dataset_name[0] + "_" + str())
     time_tracker.start_timer("generation")
     while len(initial_population) < population_size:
@@ -127,8 +127,9 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
     t.append(time.time())
     start_t = time.time()
     print("start fitness function")
-    raw_fts = fitness.cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, forest, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
+    raw_fts = fitness.cost_function(initial_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
 
+    forest.set_metrics_for_all(raw_fts[2], 0)
     # sortedPeople,fitnesses,fitness_dict
 
     if path_save_results != '':
@@ -140,7 +141,8 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
     dict_iterations.append([str(raw_fts[0][-1])] + np.mean(raw_fts[1], axis=0).tolist() + raw_fts[1][-1].tolist())
     population = raw_fts[0]
     conv = 0
-    
+    population_per_generation[0] = population
+
     for i in range(1, generations):
         start_t = time.time()
         t.append(time.time())
@@ -156,13 +158,13 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
                 else:
                     new_population = genetic_operators.apply_genetic_operators(population, basic_events, config_gen_op, forest, i, debugging)
             time_tracker.end_timer("generation")
-            raw_fts = fitness.cost_function(new_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, forest, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
+            raw_fts = fitness.cost_function(new_population, dataset, bes, population_size, ft_from_MCSs, multi_objective_function, seg_size, cache_dictionary, use_multithreading, use_caching, time_tracker)
+            forest.set_metrics_for_all(raw_fts[2], i)
         if path_save_results != '':
             #Saving dataset
             save_results(raw_fts,t[-1]-t[0],path_save_results,dataset,ft_from_MCSs,multi_objective_function)
         dict_iterations.append([str(raw_fts[0][-1])] + np.mean(raw_fts[1],axis=0).tolist() + raw_fts[1][-1].tolist()  )
-        print(raw_fts[0])
-        print(raw_fts[1])
+        
         print(str(i),'\t    ϕ_c=',"{:.4f}".format(np.mean(raw_fts[1][:,0])),
               ', ϕ_d=',"{:.4f}".format(np.mean(raw_fts[1][:,2])),
               ', ϕ_r=',"{:.4f}".format(np.mean(raw_fts[1][:,3])),
@@ -286,6 +288,8 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
             population = random_select(sortedPeople, population_size, fitness_dict)
         else:
             population = elitism(sortedPeople, population_size, fitness_dict)
+
+        population_per_generation[i] = population
     
     print('... FT-MOEA finalized ...')
-    return raw_fts[0], t, raw_fts[1]
+    return raw_fts[0], t, raw_fts[1], forest

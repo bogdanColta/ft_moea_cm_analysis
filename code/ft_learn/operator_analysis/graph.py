@@ -8,6 +8,7 @@ class Graph:
         self.vertices = {}
         self.vertices_single_key = {}
         self.initial_population = []
+        self.generation_to_fts = {}
         
         for i in initial_population:
             self.add_vertex(str(i), "", [], 0)
@@ -15,32 +16,44 @@ class Graph:
 
 
     def add_vertex(self, ft, operator, parent, generation):        
-        if (ft, operator) not in self.vertices:
+        if (ft, operator, generation) not in self.vertices:
             vertex = Vertex(ft, operator, parent, generation)
             self.graph[vertex] = []
-            self.vertices[(ft, operator)] = vertex
+            self.vertices[(ft, operator, generation)] = vertex
+            
+            if generation not in self.generation_to_fts:
+                self.generation_to_fts[generation] = []
+            self.generation_to_fts[generation].append(vertex)
+                
             if ft not in self.vertices_single_key:
                 self.vertices_single_key[ft] = vertex
                             
             
-    def get_vertex(self, ft, operator): 
-        return self.vertices[(ft, operator)]
+    def get_vertex(self, ft, operator, generation): 
+        return self.vertices[(ft, operator, generation)]
     
     
     def get_vertex_single(self, ft):
         return self.vertices_single_key[ft]
 
 
-    def add_edge(self, parent, child, operator):
+    def add_edge(self, parent, child, operator, generation):
         for i in parent:
-            self.graph[self.get_vertex_single(i)].append(self.get_vertex(child, operator))
+            # think later if we want to put the generation for the parent
+            self.graph[self.get_vertex_single(i)].append(self.get_vertex(child, operator, generation))
             
             
-    def set_metrics_for_all(self, metrics):
-        for i in self.vertices:
-            if i[0] in metrics:
-                self.get_vertex(i[0], i[1]).set_metrics(metrics[i[0]])
+    def set_metrics_for_all(self, metrics, generation):
+        for i in self.generation_to_fts[generation]:
+            if i.get_ft() in metrics:
+                i.set_metrics(metrics[i.get_ft()])
     
+    def get_vertices_by_generation_and_ft(self, generation, ft):
+        vertices = []
+        for i in self.generation_to_fts[generation]:
+            if i.get_ft() == ft:
+                vertices.append(i)
+        return vertices
     
     def trace_back(self, ft):
         # operator

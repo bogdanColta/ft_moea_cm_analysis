@@ -140,6 +140,7 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
         ft = fts[-1]
         
         filename, file_extension = os.path.splitext(os.path.basename(args.file))
+        # do this for bfs of the graph to obtain data frame
         graph_statistics.bfs(filename)
     elif config.learn_approach == LearnApproach.SYMPY:
         log_debug("Learn FT via sympy for module {}".format(CutSet(bes.keys()).to_string(bes)), recurse_level)

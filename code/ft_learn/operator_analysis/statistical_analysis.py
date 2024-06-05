@@ -205,4 +205,4 @@ if __name__ == "__main__":
     with open('output-test.txt', 'w') as f:
         f.write(df_string)
         
-    difference(df)
+    # difference(df)

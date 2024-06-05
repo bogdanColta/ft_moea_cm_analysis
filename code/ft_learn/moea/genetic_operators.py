@@ -348,7 +348,11 @@ def apply_genetic_operators(population, all_bes, prob_config, graph, generation,
     for ft in population:
         result = operate_on_ft(ft, population, all_bes, prob_config, deterministic)
         results.append(result)
-
+        vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
+        for vertex in vertices:
+            graph.add_vertex(str(ft), vertex.get_operator(), vertex.get_parent(), generation)
+            graph.add_edge(str(ft), vertex.get_ft(), vertex.get_operator(), generation)
+        
     new_population = []
     total_assert_errors = 0
     for result in results:
@@ -356,9 +360,8 @@ def apply_genetic_operators(population, all_bes, prob_config, graph, generation,
         total_assert_errors += result[1]
         
         for task in result[2]:
-            if task[0] not in task[2]:
-                graph.add_vertex(task[0], task[1], task[2], generation)
-                graph.add_edge(task[2], task[0], task[1])
+            graph.add_vertex(task[0], task[1], task[2], generation)
+            graph.add_edge(task[2], task[0], task[1], generation)
         
     new_population = list(set(new_population))
     if total_assert_errors > 0:
@@ -383,7 +386,7 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
                         tasks.append([str(new_ft_2), action.__name__, [str(ft), str(random_ft)]])                       
                         new_population.append(new_ft_2)
                         
-                if new_ft and not helper.check_empty_objects(new_ft) and action != cross_over:
+                if new_ft and not helper.check_empty_objects(new_ft):
                     new_ft.add_to_history(action.__name__)
                     tasks.append([str(new_ft), action.__name__, [str(ft), str(random_ft)]])
                     new_population.append(new_ft)
@@ -399,8 +402,6 @@ def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
         if new_ft and not helper.check_empty_objects(new_ft) and action != cross_over:
                 # print(new_ft.operation_history)
                 new_ft.add_to_history(action.__name__)
-                # graph.add_vertex(new_ft, str(action), ft)
-                # graph.add_edge(ft, new_ft)
                 tasks.append([str(new_ft), action.__name__, [str(ft)]])
                 new_population.append(new_ft)
 
@@ -411,6 +412,12 @@ def apply_genetic_operators_multithreaded(population, all_bes, prob_config, grap
     with Pool() as p:
         results = p.starmap(operate_on_ft, [(ft, population, all_bes, prob_config, deterministic) for ft in population])
     
+    for ft in population:
+        vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
+        for vertex in vertices:
+            graph.add_vertex(str(ft), vertex.get_operator(), vertex.get_parent(), generation)
+            graph.add_edge(vertex.get_parent(), vertex.get_ft(), vertex.get_operator(), generation)
+        
     new_population = []
     total_assert_errors = 0
     for result in results:
@@ -418,9 +425,8 @@ def apply_genetic_operators_multithreaded(population, all_bes, prob_config, grap
         total_assert_errors += result[1]
         
         for task in result[2]:
-            if task[0] not in task[2]:
-                graph.add_vertex(task[0], task[1], task[2], generation)
-                graph.add_edge(task[2], task[0], task[1])
+            graph.add_vertex(task[0], task[1], task[2], generation)
+            graph.add_edge(task[2], task[0], task[1], generation)
         
     new_population = list(set(new_population))
     if total_assert_errors > 0:

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+import time
 
 class Graph:
     def __init__(self, initial_population):
@@ -77,35 +78,73 @@ class Graph:
                 
 
 
-    def bfs(self, filename):
-        visited = set()
-        queue = []
-        data = []
-        for x in self.initial_population:
-            v = self.get_vertex_single(x)
-            queue.append(v)
-            visited.add(v)
+    # def bfs(self, population_per_generation, filename):
+    #     # visited = set()
+    #     # queue = []
+    #     # data = []
+    #     # for x in self.initial_population:
+    #     #     v = self.get_vertex_single(x)
+    #     #     queue.append(v)
+    #     #     visited.add(v)
         
-        while queue:
-            vertex = queue.pop(0)
+    #     # while queue:
+    #     #     vertex = queue.pop(0)
                 
-            for i in vertex.get_parent():
-                data.append([vertex.get_ft(), i, vertex.get_metrics(), self.get_vertex_single(i).get_metrics(), vertex.get_operator(), vertex.get_generation()])
+    #     #     for i in vertex.get_parent():
+    #     #         data.append([vertex.get_ft(), i, vertex.get_metrics(), self.get_vertex_single(i).get_metrics(), vertex.get_operator(), vertex.get_generation()])
                 
-            for neighbor in self.graph[vertex]:
-                if neighbor not in visited:
-                    queue.append(neighbor)
-                    visited.add(neighbor)
-                 
+    #     #     for neighbor in self.graph[vertex]:
+    #     #         if neighbor not in visited:
+    #     #             queue.append(neighbor)
+    #     #             visited.add(neighbor)
+        
+        
+    #     data = []
+    #     generations = sorted(population_per_generation.keys())
+    #     for i in generations:
+    #         vertices = self.generation_to_fts[i]
+    #         dominant_generation = population_per_generation[i]
+    #         for v in vertices:
+    #             first = True
+    #             for i in v.get_parent():
+    #                 passed = 0
+    #                 if v.get_ft() in dominant_generation and v.get_ft() not in v.get_parent() and first:
+    #                     first = False
+    #                     passed = 1
                     
-        output_folder = 'ft_learn/operator_analysis/saved_data_frames'
+    #                 data.append([v.get_ft(), i, v.get_metrics(), self.get_vertex_single(i).get_metrics(), v.get_operator(), v.get_generation(), passed])
+                        
+    #     output_folder = 'ft_learn/operator_analysis/saved_data_frames' + f'/{filename}'
+        
+    #     if not os.path.exists(output_folder):
+    #         os.makedirs(output_folder)
+            
+    #     df = pd.DataFrame(data, columns=['Child', 'Parent', 'Child_Metrics', 'Parent_Metrics', 'Operator', 'Generation', 'Passed'])
+    #     df.to_pickle(output_folder + f'/{filename}' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.pkl')
+    
+    
+    def group_vertices_per_dominant_generation(self, population_per_generation, filename):
+        generations = sorted(population_per_generation.keys())
+        data = []
+        for i in generations:
+            vertices = self.generation_to_fts[i]
+            dominant_generation = population_per_generation[i]
+            temp = []
+            for v in vertices:
+                if v.get_ft() in dominant_generation and v.get_ft() not in v.get_parent():
+                    data.append([v.get_ft(), v.get_operator(), v.get_generation()])
+                    temp.append(v.get_ft())
+            
+            temp = list(set(temp))
+            print(len(temp))
+        output_folder = 'ft_learn/operator_analysis/saved_data_frames' + f'/{filename}'
         
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
             
-        df = pd.DataFrame(data, columns=['Child', 'Parent', 'Child_Metrics', 'Parent_Metrics', 'Operator', 'Generation'])
-        df.to_pickle(output_folder + f'/{filename}.pkl')
-    
+        df = pd.DataFrame(data, columns=['Tree', 'Operator', 'Generation'])
+        df.to_pickle(output_folder + f'/{filename}' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.pkl')
+
 
 class Vertex:
     def __init__(self, ft, operator, parent, generation):

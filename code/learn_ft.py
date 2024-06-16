@@ -130,18 +130,20 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
         # Store BEs (globally and per module)
         bes_ftmoea = {'all': bes_all, 'module': bes_module}
         
-        fts, _, _, graph_statistics = perform_genetic_ftmoea(dataset=dataset_evaluation_ftmoea, MCSs=mcs_matrix_ftmoea, bes=bes_ftmoea, population_size=config.population,
+        fts, _, _, graph_statistics, population_per_generation = perform_genetic_ftmoea(dataset=dataset_evaluation_ftmoea, MCSs=mcs_matrix_ftmoea, bes=bes_ftmoea, population_size=config.population,
                                            generations=config.max_generations, convergence_criterion=config.unchanged_generations, multi_objective_function=config.obj_functions,
                                            config_gen_op=config.probs_config, selection_strategy=config.selection_strategy, debugging=config.debug,
                                            path_save_results=config.saving_folder,
                                            ft_as_input=config.ft_as_input, seg_size=config.seg_size, dataset_name=os.path.splitext(os.path.basename(args.file)),
                                            use_multithreading = config.use_multithreading,
-                                           use_caching = config.use_caching)
+                                           use_caching = config.use_caching, use_statistical_analysis = config.use_stats)
         ft = fts[-1]
         
         filename, file_extension = os.path.splitext(os.path.basename(args.file))
         # do this for bfs of the graph to obtain data frame
-        graph_statistics.bfs(filename)
+        # graph_statistics.bfs(population_per_generation, filename)
+        if config.use_stats:
+            graph_statistics.group_vertices_per_dominant_generation(population_per_generation, filename)
     elif config.learn_approach == LearnApproach.SYMPY:
         log_debug("Learn FT via sympy for module {}".format(CutSet(bes.keys()).to_string(bes)), recurse_level)
         # cutset_matrix = cutset_matrix[:, list(mod_bes.keys())]
@@ -408,8 +410,9 @@ if __name__ == "__main__":
     parser.add_argument('--segment-size', '-sz',type=int, help='Set segment size for random segmentation', default='4')
     parser.add_argument('--metric-config','-mc', type=str, help='Set metric configuration', default="11100110100100010000001")
     # "11100000000000000000000"
+    # "11100110100100010000001"
     args = parser.parse_args()
-
+    # add stats to config
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
     logger = logging.getLogger(__name__)
 
@@ -422,6 +425,7 @@ if __name__ == "__main__":
     # config.use_recursion = not args.disable_recursion
     config.use_recursion = False
     config.use_multithreading = True
+    config.use_stats = False
     # config.use_multithreading = not args.disable_multithreading
     config.use_caching = not args.disable_caching
     config.seg_size = args.segment_size

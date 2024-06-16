@@ -39,36 +39,68 @@ def difference(df):
         'delete_gate': 'pink',
         'connect_be': 'gray',
         'move_be': 'cyan',
+        'do_nothing' : 'black'
     } 
     
     
-    for metric in metrics.keys():
-        plt.figure(figsize=(10, 6))
+    # for metric in metrics.keys():
+    #     plt.figure(figsize=(10, 6))
         
-        for operator in df['Operator'].unique():
-            subset = df[df['Operator'] == operator]
-            generations = subset['Generation'].unique()
-            generations.sort()
+    #     for operator in df['Operator'].unique():
+    #         subset = df[df['Operator'] == operator]
+    #         subset = subset[subset['Passed'] == 1]
+    #         generations = subset['Generation'].unique()
+    #         generations.sort()
             
-            x = []
-            mean = []
+    #         x = []
+    #         mean = []
             
-            for i in range(len(generations)):
-                x.append(generations[i])
-                mean.append(subset[subset['Generation'] == generations[i]][metric].mean())
+    #         for i in range(len(generations)):
+    #             x.append(generations[i])
+    #             mean.append(subset[subset['Generation'] == generations[i]][metric].mean())
                     
-            # Plot mean line
-            plt.plot(x, mean, label=f'{operator} Mean', color=color_map.get(operator, 'black'))
+    #         # Plot mean line
+    #         plt.plot(x, mean, label=f'{operator}', color=color_map.get(operator, 'black'))
         
-        plt.xlabel('Generation')
-        plt.ylabel(f'Mean of difference between child and parent {metric}')
-        plt.title(f'Mean of difference between child and parent {metric} by Generation and Operator')
-        plt.legend(title='Operator')
-        plt.grid(True)
+    #     plt.xlabel('Generation')
+    #     plt.ylabel(f'Mean of difference between child and parent {metric}')
+    #     plt.title(f'Mean of difference between child and parent {metric} by Generation and Operator')
+    #     plt.legend(title='Operator')
+    #     plt.grid(True)
         
-        filename = os.path.join(output_folder, f'{metric}.png')
-        plt.savefig(filename)
-        plt.close()
+    #     filename = os.path.join(output_folder, f'{metric}.png')
+    #     plt.savefig(filename)
+    #     plt.close()
+        
+    
+    plt.figure(figsize=(10, 6))
+    generations = df['Generation'].unique()
+    generations.sort()
+    
+    for operator in df['Operator'].unique():
+        x = []
+        y = []
+        
+        for i in range(len(generations)):
+            subset_of_generation = df[df['Generation'] == i]
+            # subset_of_generation = subset_of_generation[subset_of_generation['Passed'] == 1]
+            x.append(generations[i])
+            y.append(len(subset_of_generation[subset_of_generation['Operator'] == operator])/400)
+   
+        plt.plot(x, y, label=f'{operator}', color=color_map.get(operator, 'black'))
+    
+    plt.xlabel('Generation')
+    plt.ylabel(f'Percentage of successful operators')
+    plt.title(f'Percentage of successful operators by Generation and Operator')
+    plt.legend(title='Operator')
+    plt.grid(True)
+    
+    filename = os.path.join(output_folder, f'successful_operators.png')
+    plt.savefig(filename)
+    
+    plt.close()
+    
+    # --------------------------------------------------------
     
     
     # output_folder_metrics_operator = output_folder + '/std_median_per_metric_and_operator'
@@ -156,53 +188,142 @@ def difference(df):
         
     #     filename = os.path.join(output_folder_u, f'{metric}_U-Test.png')
     #     plt.savefig(filename)
-        
 
-    # def all_identical(lst):
-    #     return all(x == lst[0] for x in lst)
-
-    # def perform_kruskal_wallis(df, metric, grouped_data):
-    #     if not all_identical(df[metric].values):
-    #         kruskal_stat, kruskal_p = kruskal(*grouped_data[metric])
-    #         # print(f'Kruskal-Wallis test results for {metric}: H-statistic={kruskal_stat}, P-value={kruskal_p}')
-    #         return kruskal_p
-    #     else:
-    #         # print(f'All values are identical for {metric}. Skipping Kruskal-Wallis test.')
-    #         return 1
-
-    # def pairwise_mannwhitneyu(groups, alpha=0.05):
-    #     pairs = list(itertools.combinations(groups.keys(), 2))
-    #     p_values = []
-    #     for (op1, op2) in pairs:
-    #         u_stat, p_val = mannwhitneyu(groups[op1], groups[op2], alternative='two-sided')
-    #         p_values.append((op1, op2, p_val, np.median(groups[op1]), np.median(groups[op2])))
-    #     corrected_p_values = [(op1, op2, min(p_val * len(pairs), 1.0), med1, med2) for op1, op2, p_val, med1, med2 in p_values]
-    #     return corrected_p_values
-
-    # kruskal_p_values = {}
-    # for metric in metrics.keys():
-    #     kruskal_p_values[metric] = perform_kruskal_wallis(df, metric, grouped_data)
+def all_dataframes(list_df):
+    data_x = {}
+    data_y = {}
     
-    # print("Mann-Whitney U-----------------------------------------")
-    # for metric, p_value in kruskal_p_values.items():
-    #     if p_value < 0.05:
-    #         print(f'Significant differences found for {metric}. Performing pairwise comparisons:')
-    #         comparisons = pairwise_mannwhitneyu(grouped_data[metric])
-    #         for op1, op2, p_val, med1, med2 in comparisons:
-    #             if p_val < 0.05:
-    #                 higher_op = op1 if med1 > med2 else op2
-    #                 print(f'{metric}: Mann-Whitney U test between {op1} and {op2}: corrected P-value={p_val}. Higher improvement: {higher_op}')
+    for df in list_df:
+        generations = df['Generation'].unique()
+        generations.sort()
+        
+        for operator in df['Operator'].unique():
+            x = []
+            y = []
+            
+            for i in range(len(generations)):
+                subset_of_generation = df[df['Generation'] == i]
+                x.append(generations[i])
+                y.append(len(subset_of_generation[subset_of_generation['Operator'] == operator])/400)
 
+            if operator not in data_x:
+                data_x[operator] = []
+                data_y[operator] = []
+                
+            data_x[operator].append(x)
+            data_y[operator].append(y)
+            
+                
+    data_agg_x = {}
+    data_agg_y = {}
+                
+    for operator in data_x.keys():
+        x_list = data_x[operator]
+        y_list = data_y[operator]
+            
+        intersection = set(x_list[0])
+        for x in x_list[1:]:
+            intersection.intersection_update(x)
+
+        data_agg_x[operator] = list(intersection)
+        
+        y_agg = []
+        for x in data_agg_x[operator]:
+            agg = []
+            
+            for y in y_list:
+                agg.append(y[x])
+                
+            y_agg.append(agg)
+            
+        data_agg_y[operator] = y_agg
+    
+    return data_agg_x , data_agg_y
+    
+def graph(list_df, file):
+    data_agg_x , data_agg_y = all_dataframes(list_df)
+    
+    output_folder = 'plots/plot_' + file + '_' + time.strftime('%Y-%m-%d_%H-%M-%S')
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    color_map = {
+        'disconnect_be': 'blue',
+        'delete_be': 'green',
+        'create_gate': 'red',
+        'change_gate_type': 'purple',
+        'create_be': 'orange',
+        'cross_over': 'brown',
+        'delete_gate': 'pink',
+        'connect_be': 'gray',
+        'move_be': 'cyan',
+        'do_nothing' : 'black'
+    } 
+    
+    plt.figure(figsize=(10, 6))
+    
+    for operator in df['Operator'].unique():
+        x = []
+        generations = data_agg_x[operator]
+        mean = []
+        median = []
+        std = []
+        
+        for i in range(len(generations)):
+            x.append(generations[i])
+            mean.append(np.mean(data_agg_y[operator][generations[i]]))
+            median.append(np.median(data_agg_y[operator][generations[i]]))
+            std.append(np.std(data_agg_y[operator][generations[i]]))
+   
+        # Plot mean line
+        plt.plot(x, mean, label=f'{operator} Mean', color=color_map.get(operator, 'black'))
+        
+        # Plot shaded area for std deviation
+        plt.fill_between(x, np.array(mean) - np.array(std), np.array(mean) + np.array(std), 
+                        color=color_map.get(operator, 'black'), alpha=0.2)
+        
+        # Plot median line with dotted style
+        plt.plot(x, median, label=f'{operator} Median', color=color_map.get(operator, 'black'), linestyle=':')
+    
+            
+    plt.xlabel('Generation')
+    plt.ylabel(f'Percentage of successful operators')
+    plt.title(f'Percentage of successful operators by Generation and Operator (x5)')
+    plt.legend(title='Operator')
+    plt.grid(True)
+    
+    filename = os.path.join(output_folder, 'successful operators.png')
+    plt.savefig(filename)
+    
+    plt.close()
+    
 
 if __name__ == "__main__":
-    file = sys.argv[1]
-    df = pd.read_pickle(file)
-    file, file_extension = os.path.splitext(os.path.basename(file))
-    # Convert the DataFrame to a string
-    df_string = df.to_string()
+    folder_path = sys.argv[1]
+    file_list = os.listdir(folder_path)
+    dataframes = []
+    filename = os.path.basename(os.path.normpath(folder_path))
+    for file_name in file_list:
+        if file_name.endswith('.pkl'):
+            file_path = os.path.join(folder_path, file_name)
+            df = pd.read_pickle(file_path)
+            dataframes.append(df)
 
-    # Write the string to a file
-    with open('output-test.txt', 'w') as f:
-        f.write(df_string)
+    graph(dataframes, filename)
+    
+    # Perform operations on the dataframes
+    # for df in dataframes:
+    #     print(df)
+    
+    # df = pd.read_pickle(file)
+    # file, file_extension = os.path.splitext(os.path.basename(file))
+    
+    # # Convert the DataFrame to a string
+    # df_string = df.to_string()
+
+    # # Write the string to a file
+    # with open('output-test.txt', 'w') as f:
+    #     f.write(df_string)
         
     # difference(df)

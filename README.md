@@ -1,3 +1,3 @@
 # FT-MOEA-CM
-
-The approach presented in this algorithm aims to infer fault tree models from given failure data sets. Based on the implementation of FT-MOEA, FT-MOEA-CM introduces the use of confusion matrix metrics instead of metrics based on Minimal Cut Sets.
+This repository presents an extension for the current implementation of the FT-MOEA-CM. This extension is used for generating statistical data about the algorithm. You can also find here the Jupyter Notebooks that can be used to statistically analyze the datasets that are created by the algorithm. The data sets are by default stored in the 
+`code\ft_learn\operator_analysis\saved_data_frames` folder. 

@@ -17,7 +17,6 @@ import ft_learn.moea.fitness as fitness
 import os, os.path
 import ft_learn.moea.time_tracker as tt
 from ..operator_analysis.graph import Graph
-from ..operator_analysis.statistical_analysis import difference
 
 def generate_initial_population(basic_events):
     ft1 = FaultTree(OR(deepcopy(basic_events)))
@@ -213,10 +212,6 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
         for objective_type in objectives:
             if (dict_iterations[-2][objective_type + obj_offset] != dict_iterations[-1][objective_type + obj_offset]):
                 conv = 0       
-        if conv >= convergence_criterion-1: #or ( dict_iterations[-1][4] == 1.0 and dict_iterations[-1][6] == 1.0 ):
-            print('cached', cache_dictionary)
-            print('... FT-MOEA finalized ...')
-            return raw_fts[0], t, raw_fts[1], forest, population_per_generation
 
         """
             SELECTION STRATEGY
@@ -304,6 +299,11 @@ def perform_genetic_ftmoea(dataset=[], MCSs=[], bes=[], population_size=100, ft_
             temp.append(str(j))
             
         population_per_generation[i] = temp
+        
+        if conv >= convergence_criterion-1: #or ( dict_iterations[-1][4] == 1.0 and dict_iterations[-1][6] == 1.0 ):
+            print('cached', cache_dictionary)
+            print('... FT-MOEA finalized ...')
+            return raw_fts[0], t, raw_fts[1], forest, population_per_generation
     
     print('... FT-MOEA finalized ...')
     return raw_fts[0], t, raw_fts[1], forest, population_per_generation

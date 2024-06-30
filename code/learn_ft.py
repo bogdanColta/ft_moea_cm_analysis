@@ -55,6 +55,8 @@ class Config:
         self.debug = False
         # Conversion to CNF for searching modules under AND-gates
         self.convert_cnf = False
+        # Genenrates data frames for statistical analysis
+        self.use_stats = False
 
         # Settings for FT-MOEA
         # Probability to perform each genetic operation
@@ -129,7 +131,6 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
 
         # Store BEs (globally and per module)
         bes_ftmoea = {'all': bes_all, 'module': bes_module}
-        
         fts, _, _, graph_statistics, population_per_generation = perform_genetic_ftmoea(dataset=dataset_evaluation_ftmoea, MCSs=mcs_matrix_ftmoea, bes=bes_ftmoea, population_size=config.population,
                                            generations=config.max_generations, convergence_criterion=config.unchanged_generations, multi_objective_function=config.obj_functions,
                                            config_gen_op=config.probs_config, selection_strategy=config.selection_strategy, debugging=config.debug,
@@ -143,6 +144,8 @@ def learn_new_fault_tree(mcss, bes, all_bes, config, results, dataset_evaluation
         # do this for bfs of the graph to obtain data frame
         # graph_statistics.bfs(population_per_generation, filename)
         if config.use_stats:
+            graph_statistics.get_p_and_d_dataset(population_per_generation, filename)
+            graph_statistics.generate_tensor(population_per_generation, filename)
             graph_statistics.group_vertices_per_dominant_generation(population_per_generation, filename)
     elif config.learn_approach == LearnApproach.SYMPY:
         log_debug("Learn FT via sympy for module {}".format(CutSet(bes.keys()).to_string(bes)), recurse_level)
@@ -401,6 +404,7 @@ if __name__ == "__main__":
     parser.add_argument('--symmetries', '-s', type=str, help='Optional file containing symmetries for the BEs.')
     parser.add_argument('--disable-symmetries', help='Disable use of symmetries', action='store_true')
     parser.add_argument('--disable-modules', help='Disable use of modules', action='store_true')
+    parser.add_argument('--enable-stats', help='Enable statistics collection', action='store_true')
     parser.add_argument('--disable-recursion', help='Disable recursive calls during learning', action='store_true')
     parser.add_argument('--disable-multithreading', help='Disable use of multiple CPU cores', action='store_true')
     parser.add_argument('--disable-caching', help='Disable caching of fault tree metrics', action='store_true')
@@ -424,9 +428,8 @@ if __name__ == "__main__":
     config.use_modules = not args.disable_modules
     # config.use_recursion = not args.disable_recursion
     config.use_recursion = False
-    config.use_multithreading = True
-    config.use_stats = False
-    # config.use_multithreading = not args.disable_multithreading
+    config.use_stats = args.enable_stats
+    config.use_multithreading = not args.disable_multithreading
     config.use_caching = not args.disable_caching
     config.seg_size = args.segment_size
     config.obj_functions = [int(char) for char in args.metric_config]

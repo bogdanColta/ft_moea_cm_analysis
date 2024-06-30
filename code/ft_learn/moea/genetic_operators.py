@@ -335,7 +335,7 @@ class GenOpConfig:
         self.p_cross_over = default_prob
 
 
-def apply_genetic_operators(population, all_bes, prob_config, graph, generation, deterministic=False):
+def apply_genetic_operators(population, all_bes, prob_config, graph, generation, use_stats, deterministic=False):
     """
     Apply genetic operators on fault-tree population.
     :param population: Population of fault tree.
@@ -345,38 +345,35 @@ def apply_genetic_operators(population, all_bes, prob_config, graph, generation,
     :return: New population of fault trees.
     """
     results = []
-    # for ft in population:
-    #     result = operate_on_ft(ft, population, all_bes, prob_config, deterministic)
-    #     results.append(result)
-    #     # vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
-    #     # for vertex in vertices:
-    #     #     graph.add_vertex(str(ft), vertex.get_operator(), vertex.get_parent(), generation)
-    #     #     graph.add_edge(str(ft), vertex.get_ft(), vertex.get_operator(), generation)
-        
+    for ft in population:
+        result = operate_on_ft(ft, population, all_bes, prob_config, deterministic)
+        results.append(result)
+    
+    if use_stats:
+        for ft in population:
+            vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
+            for vertex in vertices:
+                graph.add_vertex(str(ft), 'previous_generation', [str(ft)], generation)
+                graph.add_edge([str(ft)], vertex.get_ft(), 'previous_generation', generation)
+                
+
     new_population = []
     total_assert_errors = 0
     for result in results:
         new_population.extend(result[0])
         total_assert_errors += result[1]
-        
-        for task in result[2]:
-            graph.add_vertex(task[0], task[1], task[2], generation)
-            graph.add_edge(task[2], task[0], task[1], generation)
+        if use_stats:
+            for task in result[2]:
+                graph.add_vertex(task[0], task[1], task[2], generation)
+                graph.add_edge(task[2], task[0], task[1], generation)
         
     new_population = list(set(new_population))
     if total_assert_errors > 0:
         logging.debug("Encountered {} assertion errors".format(total_assert_errors))
     return new_population
 
-def operate_on_ft(ft, population, all_bes, prob_config, generation, deterministic=False):
-    # actions = [create_be, connect_be, disconnect_be, delete_be, move_be, create_gate, change_gate_type, delete_gate, cross_over]
+def operate_on_ft(ft, population, all_bes, prob_config, deterministic=False):
     actions = [create_be, connect_be, disconnect_be, delete_be, move_be, create_gate, change_gate_type, delete_gate, cross_over]
-    # if generation > 5:
-    #     actions = [create_be, disconnect_be, delete_be, move_be, create_gate, delete_gate, cross_over]
-    # if generation > 15:
-    #     actions = [create_be, disconnect_be, delete_be, delete_gate, cross_over]
-    # if generation > 20:
-    #     actions = [create_be, disconnect_be, delete_be, delete_gate, create_gate, cross_over]
     
     new_population = [ft]
     assert_errors = 0
@@ -418,14 +415,15 @@ def operate_on_ft(ft, population, all_bes, prob_config, generation, deterministi
 def apply_genetic_operators_multithreaded(population, all_bes, prob_config, graph, generation, use_stats, deterministic=False):
     
     with Pool() as p:
-        results = p.starmap(operate_on_ft, [(ft, population, all_bes, prob_config, generation, deterministic) for ft in population])
+        results = p.starmap(operate_on_ft, [(ft, population, all_bes, prob_config, deterministic) for ft in population])
     
-    # for ft in population:
-    #     vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
-    #     for vertex in vertices:
-    #         graph.add_vertex(str(ft), 'do_nothing', vertex.get_parent(), generation)
-    #         graph.add_edge(vertex.get_parent(), vertex.get_ft(), 'do_nothing', generation)
-        
+    if use_stats:
+        for ft in population:
+            vertices = graph.get_vertices_by_generation_and_ft(max(generation - 1, 0), str(ft))
+            for vertex in vertices:
+                graph.add_vertex(str(ft), 'previous_generation', [str(ft)], generation)
+                graph.add_edge([str(ft)], vertex.get_ft(), 'previous_generation', generation)
+            
     new_population = []
     total_assert_errors = 0
     for result in results:
